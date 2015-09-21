@@ -10,6 +10,7 @@ var Bool = t.Bool;
 var Obj = t.Obj;
 var Arr = t.Arr;
 var Any = t.Any;
+var Dat = t.Dat;
 var getKind = function (type) {
   return type.meta.kind;
 };
@@ -75,6 +76,16 @@ describe('transform', function () {
       eq(Type.meta.type, Str);
       eq(Type.meta.predicate('hello'), true);
       eq(Type.meta.predicate('aaa'), false);
+    });
+
+    // format
+    it('should handle date-time format', function () {
+        var Type = transform({
+            type: 'string',
+            format: 'date-time'
+        });
+        eq(Type.is('2015-07-20T04:00:00.000Z'), true);
+        eq(Type.is('aaa'), false);
     });
 
   });
@@ -325,15 +336,15 @@ describe('transform', function () {
       return /(.)+@(.)+/.test(x);
     }
 
-    transform.registerFormat('email', isEmail);
+    transform.registerFormat('myemail', isEmail);
 
     it('should throw if duplicated formats are registered', function () {
       assert.throws(
         function () {
-          transform.registerFormat('email', isEmail);
+          transform.registerFormat('myemail', isEmail);
         },
         function(err) {
-          if ( (err instanceof Error) && err.message === '[tcomb] [tcomb-json-schema] Duplicated format email') {
+          if ( (err instanceof Error) && err.message === '[tcomb] [tcomb-json-schema] Duplicated format myemail') {
             return true;
           }
         }
@@ -357,6 +368,8 @@ describe('transform', function () {
     });
 
     it('should handle format property', function () {
+      transform.registerFormat('email', isEmail);
+
       var Type = transform({
         type: "string",
         format: 'email'

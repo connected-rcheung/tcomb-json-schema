@@ -10,6 +10,28 @@ function and(f, g) {
   return f ? fcomb.and(f, g) : g;
 }
 
+// Format attributes as defined in JSON Schema Validation spec:
+// http://json-schema.org/latest/json-schema-validation.html#anchor104
+var stringFormats = {
+    'date-time': function (s) {
+        // Override t.Dat's predicate to cast string to Date object
+        var oldPredicate = t.Dat.is;
+        var customDatePredicate = function (x) {
+            var parsedDate = new Date(x); 
+            if (isNaN( parsedDate.getTime() )) {
+                return false
+            }
+            return oldPredicate(parsedDate);
+        };
+        t.Dat.is = customDatePredicate;
+        return t.Dat;
+    }
+}
+
+function isEmail(x) {
+    return /(.)+@(.)+/.test(x);
+}
+
 var types = {
 
   string: function (s) {
@@ -122,6 +144,15 @@ function transform(s) {
   }
   var type = s.type;
   if (SchemaType.is(type)) {
+    // If string, check format
+    if (t.String.is(type) && s.hasOwnProperty('format') && stringFormats.hasOwnProperty(s.format)) {
+        //TODO: Move s.formats to enum
+        if (s.format == 'email') {
+            transform.registerFormat('email', isEmail);
+        }
+        var format = s.format;
+        return stringFormats[format](s);
+    }
     return types[type](s);
   }
   if (t.Array.is(type)) {
@@ -140,6 +171,9 @@ function transform(s) {
 var formats = {};
 
 transform.registerFormat = function registerFormat(format, predicate) {
+  if (format == 'email' && formats.hasOwnProperty(format)) {
+      delete formats[format];
+  }
   t.assert(!formats.hasOwnProperty(format), '[tcomb-json-schema] Duplicated format ' + format);
   formats[format] = predicate;
 };
